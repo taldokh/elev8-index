@@ -8,6 +8,8 @@ pandas = "*"
 openpyxl = "*"
 matplotlib = "*"
 requests = "*"
+xlsxwriter = "*"
+psycopg2 = "*"
 
 [dev-packages]
 

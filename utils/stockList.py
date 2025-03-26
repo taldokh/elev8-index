@@ -1,8 +1,8 @@
 import pandas as pd
 
 # Load the COVERPAGE and INFOTABLE tables
-coverpage_file = "COVERPAGE.tsv"
-infotable_file = "INFOTABLE.tsv"
+coverpage_file = "../COVERPAGE.tsv"
+infotable_file = "../INFOTABLE.tsv"
 
 coverpage_df = pd.read_csv(coverpage_file, sep='\t')
 infotable_df = pd.read_csv(infotable_file, sep='\t')

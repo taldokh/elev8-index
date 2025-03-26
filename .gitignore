@@ -4,3 +4,5 @@ COVERPAGE.tsv
 INFOTABLE.tsv
 .idea/
 *.xlsx
+__pycache__/
+13f filling zips/
