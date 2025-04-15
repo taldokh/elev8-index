@@ -49,25 +49,6 @@ def get_quarter_start_date(quarter_str):
         raise ValueError(f"Invalid quarter string: {quarter_str}")
 
 
-def calculate_weights_for_quarter(df):
-    """Calculate the weight for each ticker in a quarter."""
-    # Count unique equities in the quarter
-    unique_equities = df["TICKER"].nunique()
-
-    # Calculate equal weight per equity
-    equal_weight = 100 / len(df["TICKER"])
-
-    # Aggregate weights for duplicate tickers
-    #df = df.groupby("TICKER", as_index=False).agg({"CUSIP": "first"})
-    df["WEIGHT"] = df["TICKER"].map(df["TICKER"].value_counts() * equal_weight)
-
-    # Round to 4 decimal places
-    df["WEIGHT"] = df["WEIGHT"].round(4)
-
-    df.drop_duplicates(subset=['CUSIP'], inplace=True)
-    return df
-
-
 def process_excel_and_insert():
     """Read the Excel file, map CUSIP to Ticker, calculate weight, and insert into PostgreSQL."""
     if not os.path.exists(RESULT_EXCEL_FILE):
@@ -81,19 +62,25 @@ def process_excel_and_insert():
         for quarter in xls.sheet_names:
             df = pd.read_excel(xls, sheet_name=quarter)
 
+            if "PERCENTAGE" not in df.columns:
+                raise KeyError(f"Missing 'PERCENTAGE' column in {quarter}")
+
             # Map CUSIP to Ticker
             df["TICKER"] = df["CUSIP"].map(cusip_ticker_map)
-
-            # Drop rows where ticker is missing
             df.dropna(subset=["TICKER"], inplace=True)
 
-            # Get the first date of the quarter
+            # Convert percentage to decimal weight
+            df["WEIGHT"] = df["PERCENTAGE"] / 100
+
+            # Aggregate duplicate tickers
+            df = df.groupby("TICKER", as_index=False)["WEIGHT"].sum()
+
+            # Normalize weights so that the total per quarter is exactly 100
+            df["WEIGHT"] = ((df["WEIGHT"] / df["WEIGHT"].sum()) * 100).round(4)
+
             formatted_quarter_date = get_quarter_start_date(quarter)
 
-            # Calculate weight for each ticker
-            df = calculate_weights_for_quarter(df)
-
-            # Append to all_data list
+            # Store results
             for _, row in df.iterrows():
                 all_data.append((row["TICKER"], formatted_quarter_date, row["WEIGHT"]))
 
@@ -107,12 +94,9 @@ def insert_into_db(data):
     INSERT INTO equities (ticker, quarter, weight)
     VALUES %s;
     """
-
     try:
         conn = connect_db()
         cur = conn.cursor()
-
-        # Insert only unique (ticker, quarter) pairs, with calculated weight
         execute_values(cur, query, data)
         conn.commit()
         print(f"Inserted {len(data)} records successfully.")
@@ -122,10 +106,10 @@ def insert_into_db(data):
         cur.close()
         conn.close()
 
+
 def delete_all_equities():
     """Delete all rows from the equities table."""
     query = "DELETE FROM equities;"
-
     try:
         conn = connect_db()
         cur = conn.cursor()

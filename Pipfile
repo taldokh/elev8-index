@@ -10,6 +10,7 @@ matplotlib = "*"
 requests = "*"
 xlsxwriter = "*"
 psycopg2 = "*"
+yfinance = "*"
 
 [dev-packages]
 
