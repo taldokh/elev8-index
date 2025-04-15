@@ -1,0 +1,20 @@
+{
+  "name": "Configuration",
+  "type": "object",
+  "properties": {
+    "hedge_funds_count": {
+      "type": "number"
+    },
+    "equities_per_fund": {
+      "type": "number"
+    },
+    "selection_type": {
+      "type": "string",
+      "enum": [
+        "top",
+        "relative"
+      ]
+    }
+  },
+  "required": []
+}
