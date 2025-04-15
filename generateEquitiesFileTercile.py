@@ -51,10 +51,8 @@ def select_tercile_stocks(stocks_df):
         indices = []
 
         if n >= TOP_X_STOCKS:
-            step = n // TOP_X_STOCKS
-            for i in range(TOP_X_STOCKS):
-                index = min(i * step, n - 1)
-                indices.append(index)
+            step = max(n // TOP_X_STOCKS, 1)
+            indices = [i for i in range(0, n, step)][:TOP_X_STOCKS]  # Spread out selection
         else:
             indices = list(range(n))  # If fewer than needed, take all
 
@@ -78,8 +76,8 @@ def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings
         firm_totals = stocks_df.groupby("FIRM_NAME")["VALUE"].sum().reset_index()
         top_firms = firm_totals.nlargest(TOP_Y_FIRMS, "VALUE")["FIRM_NAME"]
         stocks_df = stocks_df[stocks_df["FIRM_NAME"].isin(top_firms)]
-        stocks_df["TOTAL_FIRM_VALUE"] = stocks_df.groupby("FIRM_NAME")["VALUE"].transform("sum")
         selected_stocks = select_tercile_stocks(stocks_df)
+        selected_stocks["TOTAL_FIRM_VALUE"] = selected_stocks.groupby("FIRM_NAME")["VALUE"].transform("sum")
         selected_stocks["PERCENTAGE"] = (selected_stocks["VALUE"] / selected_stocks["TOTAL_FIRM_VALUE"]) * 100
         selected_stocks["QUARTER"] = os.path.basename(quarter_directory)
         all_quarters_data.append(selected_stocks)
