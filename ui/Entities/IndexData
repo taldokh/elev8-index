@@ -1,0 +1,34 @@
+{
+  "name": "IndexData",
+  "type": "object",
+  "properties": {
+    "ticker": {
+      "type": "string"
+    },
+    "exchange": {
+      "type": "string"
+    },
+    "expense_ratio": {
+      "type": "number"
+    },
+    "aum": {
+      "type": "number"
+    },
+    "price": {
+      "type": "number"
+    },
+    "daily_change": {
+      "type": "number"
+    },
+    "one_year_return": {
+      "type": "number"
+    },
+    "three_year_return": {
+      "type": "number"
+    },
+    "bid_ask_spread": {
+      "type": "number"
+    }
+  },
+  "required": []
+}

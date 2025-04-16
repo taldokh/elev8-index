@@ -6,5 +6,6 @@ INFOTABLE.tsv
 *.xlsx
 __pycache__/
 13f filling zips/
+node_modules/
 yfinanceTest.py
 historical_stock_data.csv
