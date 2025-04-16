@@ -147,37 +147,6 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, db_para
         print("❌ No prices found for this quarter.")
         return initial_index_value
 
-    # for each day - calculate the day to night change and the night to the day after that change
-    # if its not a trading day - continue to the next date
-    # for date in pd.date_range(start=start_date, end=end_date - timedelta(days=1), freq="B"):
-    #     global latest_Date
-    #     if not is_trading_day(date):
-    #         continue
-    #     try:
-    #         if date == start_date:
-    #             # if date is the index creation date then start from the initial value
-    #             if date == index_creation_date:
-    #                 index_history_close[date] = calculate_index_daily_price_change(date=date, day=True, index_price=initial_index_value)
-    #                 index_history_open[date + pd.offsets.BDay(1)] = calculate_index_daily_price_change(date=date, day=False, index_price=index_history_close.get(date))
-    #             else:
-    #             #if date is the start of the quarter then
-    #                 index_history_open[date] = calculate_index_daily_price_change(date=latest_Date, day=False,index_price=index_history_close.get(latest_Date))
-    #                 index_history_close[date] = calculate_index_daily_price_change(date=date, day=True, index_price=index_history_open.get(date))
-    #                 index_history_open[date + pd.offsets.BDay(1)] = calculate_index_daily_price_change(date=date, day=False, index_price=index_history_close.get(date))
-    #         elif date == end_date:
-    #             index_history_close[date] = calculate_index_daily_price_change(date=date, day=True, index_price=index_history_open.get(latest_Date))
-    #         elif index_history_open.get(date) == None:
-    #             index_history_open[date] = calculate_index_daily_price_change(date=latest_Date, day=False,index_price=index_history_close.get(latest_Date))
-    #             index_history_close[date] = calculate_index_daily_price_change(date=date, day=True,index_price=index_history_open.get(date))
-    #             index_history_open[date + pd.offsets.BDay(1)] = calculate_index_daily_price_change(date=date, day=False,index_price=index_history_close.get(date))
-    #         else:
-    #             index_history_close[date] = calculate_index_daily_price_change(date=date, day=True,index_price=index_history_open.get(latest_Date))
-    #             index_history_open[date + pd.offsets.BDay(1)] = calculate_index_daily_price_change(date=date, day=False,index_price=index_history_close.get(latest_Date))
-    #     except ValueError as e:
-    #         print(f"{e} {date}")
-    #         continue
-    #     latest_Date = date
-
     for date in pd.date_range(start=start_date, end=end_date - timedelta(days=1), freq="B"):
         global latest_Date
         global latest_price
@@ -276,7 +245,7 @@ if __name__ == "__main__":
 
     delete_index_points()
 
-    # Example usa
+    # Example usage
     # index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
     index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
     end_date = datetime(2024, 2, 14)  # End at Q4 2023
