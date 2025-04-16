@@ -276,7 +276,7 @@ if __name__ == "__main__":
 
     delete_index_points()
 
-    # Example usage
+    # Example usa
     # index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
     index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
     end_date = datetime(2024, 2, 14)  # End at Q4 2023
