@@ -2,31 +2,23 @@ import os
 import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import config.config as cg
+from models.equity_model import Equity
 
 # Database Configuration
-DB_CONFIG = {
-    "host": "10.10.248.105",
-    "database": "postgres",
-    "user": "postgres",
-    "password": "bartar20@CS"
-}
-
-# File paths
-RESULT_EXCEL_FILE = "Index_Holdings_Tercile.xlsx"
-CUSIP_TICKER_FILE = "./fillings/cusip_tickers.csv"
-
-
-def connect_db():
-    """Establish a connection to PostgreSQL."""
-    return psycopg2.connect(**DB_CONFIG)
+engine = create_engine(cg.DB_CONNECTION_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
 
 
 def load_cusip_ticker_mapping():
     """Load CUSIP to Ticker mapping from CSV."""
-    if not os.path.exists(CUSIP_TICKER_FILE):
-        raise FileNotFoundError(f"Missing {CUSIP_TICKER_FILE}")
+    if not os.path.exists(cg.CUSIP_TICKER_FILE_PATH):
+        raise FileNotFoundError(f"Missing {cg.CUSIP_TICKER_FILE_PATH}")
 
-    cusip_ticker_df = pd.read_csv(CUSIP_TICKER_FILE, dtype=str)
+    cusip_ticker_df = pd.read_csv(cg.CUSIP_TICKER_FILE_PATH, dtype=str)
     return cusip_ticker_df.set_index("CUSIP")["Ticker"].to_dict()
 
 
@@ -68,16 +60,16 @@ def calculate_weights_for_quarter(df):
     return df
 
 
-def process_excel_and_insert():
+def process_excel_and_insert(config_id: int):
     """Read the Excel file, map CUSIP to Ticker, calculate weight, and insert into PostgreSQL."""
-    if not os.path.exists(RESULT_EXCEL_FILE):
-        raise FileNotFoundError(f"Missing {RESULT_EXCEL_FILE}")
+    if not os.path.exists(cg.RESULT_EQUITIES_FILE_PATH):
+        raise FileNotFoundError(f"Missing {cg.RESULT_EQUITIES_FILE_PATH}")
 
     cusip_ticker_map = load_cusip_ticker_mapping()
-    all_data = []
+    all_equities = []
 
     # Read all sheets (quarters)
-    with pd.ExcelFile(RESULT_EXCEL_FILE) as xls:
+    with pd.ExcelFile(cg.RESULT_EQUITIES_FILE_PATH) as xls:
         for quarter in xls.sheet_names:
             df = pd.read_excel(xls, sheet_name=quarter)
 
@@ -95,52 +87,40 @@ def process_excel_and_insert():
 
             # Append to all_data list
             for _, row in df.iterrows():
-                all_data.append((row["TICKER"], formatted_quarter_date, row["WEIGHT"]))
+                equity = Equity(
+                    ticker=row["TICKER"],
+                    quarter=formatted_quarter_date,
+                    weight=row["WEIGHT"],
+                    configuration_id=config_id
+                )
+                all_equities.append(equity)
 
     # Insert into PostgreSQL
-    insert_into_db(all_data)
+    insert_into_db(all_equities)
 
 
-def insert_into_db(data):
-    """Insert the processed data into PostgreSQL."""
-    query = """
-    INSERT INTO equities (ticker, quarter, weight)
-    VALUES %s;
-    """
-
+def insert_into_db(all_equities):
     try:
-        conn = connect_db()
-        cur = conn.cursor()
-
-        # Insert only unique (ticker, quarter) pairs, with calculated weight
-        execute_values(cur, query, data)
-        conn.commit()
-        print(f"Inserted {len(data)} records successfully.")
+        session.add_all(all_equities)
+        session.commit()
+        print(f"Inserted {len(all_equities)} records successfully.")
     except Exception as e:
+        session.close()
         print(f"Database error: {e}")
-    finally:
-        cur.close()
-        conn.close()
+
 
 def delete_all_equities():
-    """Delete all rows from the equities table."""
-    query = "DELETE FROM equities;"
-
     try:
-        conn = connect_db()
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
+        session.query(Equity).delete()
+        session.commit()
+        print("Deleted all rows in equities table.")
         print("All rows in the equities table have been deleted.")
     except Exception as e:
+        session.close()
         print(f"Error deleting rows: {e}")
-    finally:
-        cur.close()
-        conn.close()
 
 
-def insert_equities_to_db():
-    delete_all_equities()
-    process_excel_and_insert()
+def insert_equities_to_db_equal_weight(config_id: int):
+    print(f'processing {cg.RESULT_EQUITIES_FILE_PATH} and inserting to DB with equal weight')
+    process_excel_and_insert(config_id)
 
-insert_equities_to_db()

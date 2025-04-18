@@ -2,8 +2,8 @@ import os
 import pandas as pd
 
 # Configurable parameters
-TOP_Y_FIRMS = 8  # Number of top firms to select
-TOP_X_STOCKS = 5  # Number of stocks to select based on tercile method
+NUMBER_OF_FIRMS = 8  # Number of top firms to select
+EQUITIES_PER_FIRM = 5  # Number of stocks to select based on tercile method
 
 
 # Function to load coverpage.tsv and create a mapping of ACCESSION_NUMBER → Firm Name
@@ -50,9 +50,9 @@ def select_tercile_stocks(stocks_df):
         n = len(group)
         indices = []
 
-        if n >= TOP_X_STOCKS:
-            step = n // TOP_X_STOCKS
-            for i in range(TOP_X_STOCKS):
+        if n >= EQUITIES_PER_FIRM:
+            step = n // EQUITIES_PER_FIRM
+            for i in range(EQUITIES_PER_FIRM):
                 index = min(i * step, n - 1)
                 indices.append(index)
         else:
@@ -64,7 +64,7 @@ def select_tercile_stocks(stocks_df):
 
 
 # Main function to process each quarter and generate index holdings
-def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings_Tercile.xlsx"):
+def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings.xlsx"):
     all_quarters_data = []
     quarter_directories = [os.path.join(fillings_directory, d) for d in os.listdir(fillings_directory) if
                            os.path.isdir(os.path.join(fillings_directory, d))]
@@ -76,7 +76,7 @@ def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings
             continue
 
         firm_totals = stocks_df.groupby("FIRM_NAME")["VALUE"].sum().reset_index()
-        top_firms = firm_totals.nlargest(TOP_Y_FIRMS, "VALUE")["FIRM_NAME"]
+        top_firms = firm_totals.nlargest(NUMBER_OF_FIRMS, "VALUE")["FIRM_NAME"]
         stocks_df = stocks_df[stocks_df["FIRM_NAME"].isin(top_firms)]
         stocks_df["TOTAL_FIRM_VALUE"] = stocks_df.groupby("FIRM_NAME")["VALUE"].transform("sum")
         selected_stocks = select_tercile_stocks(stocks_df)
@@ -93,9 +93,12 @@ def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings
     print(f"Data exported to {output_file_path}")
 
 
-def generate_equities_file():
+def generate_equities_file_top(equities_per_firm, number_of_firms):
+    global EQUITIES_PER_FIRM, NUMBER_OF_FIRMS
+
     fillings_directory = "./fillings"
+    EQUITIES_PER_FIRM = equities_per_firm
+    NUMBER_OF_FIRMS = number_of_firms
+
+    print(f'selecting {equities_per_firm} per {number_of_firms} with the TOP selection method')
     generate_index_holdings(fillings_directory)
-
-
-generate_equities_file()

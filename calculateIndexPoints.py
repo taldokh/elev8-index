@@ -4,23 +4,28 @@ import psycopg2
 import requests
 import pandas as pd
 from datetime import datetime, timedelta
-import time
+from sqlalchemy.orm import sessionmaker
+import config.config as cg
+from sqlalchemy import create_engine, func
+from models import IndexPoint, Equity
 
-RATE_LIMIT_SLEEP = 3
-BATCH_SIZE = 50
+# Database Configuration
+engine = create_engine(cg.DB_CONNECTION_URL)
+Session = sessionmaker(bind=engine)
+session = Session()
 
-# The rebalance dates, which happen on the 15th of the middle month of each quarter
-REBALANCE_DATES = [
-    (2, 15), (5, 15), (8, 15), (11, 15)
-]
+index_history_open = {}
+index_history_close = {}
+latest_price = 0
+latest_Date = 0
 
 
 def get_quarter_ranges(start_year, end_year):
     ranges = []
     for year in range(start_year, end_year + 1):
-        for i in range(len(REBALANCE_DATES)):
-            start_month, start_day = REBALANCE_DATES[i]
-            end_month, end_day = REBALANCE_DATES[(i + 1) % 4]
+        for i in range(len(cg.REBALANCE_DATES)):
+            start_month, start_day = cg.REBALANCE_DATES[i]
+            end_month, end_day = cg.REBALANCE_DATES[(i + 1) % 4]
             start_date = datetime(year if i < 3 else year, start_month, start_day)
             end_date = datetime(year if i < 3 else year + 1, end_month, end_day)
             ranges.append((start_date, end_date))
@@ -62,7 +67,7 @@ def fetch_prices_eod(ticker, start_date, end_date, api_token):
 
 
 # Calculate the index for a specific quarter based on the previous quarter's equities
-def calculate_quarterly_index(start_date, end_date, initial_index_value, db_params, api_token):
+def calculate_quarterly_index(start_date, end_date, initial_index_value, index_creation_date, config_id: int):
     def calculate_index_daily_price_change(date, index_last_price):
         factor = 0
 
@@ -103,11 +108,19 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, db_para
 
         return index_last_price * factor
 
-    def insert_index_to_db(day_start_points, day_end_points, date):
-        cur.execute("""
-                    INSERT INTO index_points (day_start_points, day_end_points, market_date)
-                    VALUES (%s, %s, %s)
-                """, (float(round(day_start_points, 4)), float(round(day_end_points, 4)), date.date()))
+    def insert_index_to_db(day_start_points, day_end_points, date, config_id):
+        try:
+            index_point = IndexPoint(
+                day_start_points=int(round(day_start_points)),
+                day_end_points=int(round(day_end_points)),
+                market_date=date.date(),
+                configuration_id=config_id
+            )
+            session.add(index_point)
+            session.commit()
+        except Exception as e:
+            session.close()
+            print(f"Database error: {e}")
 
     def is_trading_day(date):
         ticker = next(iter(tickers_weights.keys()))
@@ -116,20 +129,20 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, db_para
             return True
         return False
 
-    conn = psycopg2.connect(**db_params)
-    cur = conn.cursor()
+    global index_history_open
+    global index_history_close
+    global latest_price
+    global latest_Date
 
-    # Fetch the equities data for the relevant quarter
-    cur.execute("""
-        SELECT ticker, weight
-        FROM equities
-        WHERE quarter = (
-            SELECT MAX(quarter)
-            FROM equities
-            WHERE quarter <= %s
-        )
-    """, (start_date,))
-    rows = cur.fetchall()
+    # Get the most recent quarter <= start_date
+    subquery = (
+        session.query(func.max(Equity.quarter))
+        .filter(Equity.quarter <= start_date)
+        .scalar_subquery()
+    )
+
+    # Fetch tickers and weights for that quarter
+    rows = session.query(Equity.ticker, Equity.weight).filter(Equity.quarter == subquery).all()
     tickers_weights = {row[0]: row[1] for row in rows}
     tickers = list(tickers_weights.keys())
 
@@ -137,7 +150,7 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, db_para
     prices_close = {}
     for i, ticker in enumerate(tickers):
         print(f"🔍 Fetching data for {ticker} ({i + 1}/{len(tickers)})")
-        price_series_open, price_series_close = fetch_prices_eod(ticker, start_date, end_date, api_token)
+        price_series_open, price_series_close = fetch_prices_eod(ticker, start_date, end_date, cg.EOD_API_TOKEN)
         if price_series_open is not None or price_series_close is not None:
             prices_open[ticker] = price_series_open
             prices_close[ticker] = price_series_close
@@ -177,31 +190,20 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, db_para
 
     for date in pd.date_range(start=start_date, end=end_date - timedelta(days=1), freq="B"):
         if date == index_creation_date:
-            insert_index_to_db(initial_index_value, index_history_close[date], date)
+            insert_index_to_db(initial_index_value, index_history_close[date], date, config_id)
         else:
             if is_trading_day(date):
-                insert_index_to_db(index_history_open[date], index_history_close[date], date)
-
-    conn.commit()
-    cur.close()
-    conn.close()
+                insert_index_to_db(index_history_open[date], index_history_close[date], date, config_id)
 
 
 def delete_index_points():
-    """Delete all rows from the equities table."""
-    query = "DELETE FROM index_points;"
-
     try:
-        conn = psycopg2.connect(**db_params)
-        cur = conn.cursor()
-        cur.execute(query)
-        conn.commit()
+        session.query(IndexPoint).delete()
+        session.commit()
         print("All rows in the index_points table have been deleted.")
     except Exception as e:
-        print(f"Error deleting rows: {e}")
-    finally:
-        cur.close()
-        conn.close()
+        session.close()
+        print(f"Database error: {e}")
 
 def generate_quarter_ranges(start_date, end_date):
     quarter_ranges = []
@@ -209,7 +211,7 @@ def generate_quarter_ranges(start_date, end_date):
     end_year = end_date.year
     # Loop through each year from the start year to the end year
     for year in range(start_year, end_year + 1):
-        for i, (month, day) in enumerate(REBALANCE_DATES):
+        for i, (month, day) in enumerate(cg.REBALANCE_DATES):
             # Check if the quarter start date is within the given range
             quarter_start_date = datetime(year, month, day)
             # If the quarter starts in November, it might belong to the next year
@@ -217,7 +219,7 @@ def generate_quarter_ranges(start_date, end_date):
                 quarter_start_date = datetime(year, month, day)
                 quarter_end_date = datetime(year + 1, 2, 15)  # Next year's February
             else:
-                quarter_end_date = datetime(year, REBALANCE_DATES[(i + 1) % 4][0], REBALANCE_DATES[(i + 1) % 4][1])
+                quarter_end_date = datetime(year, cg.REBALANCE_DATES[(i + 1) % 4][0], cg.REBALANCE_DATES[(i + 1) % 4][1])
             # Skip quarters that are outside the start and end date range
             if quarter_start_date < start_date or quarter_start_date > end_date:
                 continue  # This quarter is outside the range
@@ -227,16 +229,11 @@ def generate_quarter_ranges(start_date, end_date):
             quarter_ranges.append((quarter_start_date, quarter_end_date))
     return quarter_ranges
 
-# === Main Execution ===
-if __name__ == "__main__":
-    db_params = {
-        'host': '10.10.248.105',
-        'dbname': 'postgres',
-        'user': 'postgres',
-        'password': 'bartar20@CS',
-        'port': 5432
-    }
-    api_token = "67eee2ee694885.80164284"
+def calculate_index_points(config_id: int):
+    global index_history_open
+    global index_history_close
+    global latest_price
+    global latest_Date
 
     latest_price = 1000
 
@@ -257,8 +254,8 @@ if __name__ == "__main__":
 
     for start, end in quarter_ranges:
         if end < datetime.now():
-            initial_value = calculate_quarterly_index(start, end, latest_price, db_params, api_token)
+            initial_value = calculate_quarterly_index(start_date=start, end_date=end, initial_index_value=latest_price, index_creation_date=index_creation_date, config_id=config_id)
         else:
             break
 
-
+calculate_index_points(4)
