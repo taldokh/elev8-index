@@ -257,5 +257,3 @@ def calculate_index_points(config_id: int):
             initial_value = calculate_quarterly_index(start_date=start, end_date=end, initial_index_value=latest_price, index_creation_date=index_creation_date, config_id=config_id)
         else:
             break
-
-calculate_index_points(4)
