@@ -1,9 +1,6 @@
 import os
 import pandas as pd
-
-# Configurable parameters
-NUMBER_OF_FIRMS = 8  # Number of top firms to select
-EQUITIES_PER_FIRM = 5  # Number of stocks to select based on tercile method
+import config.config as cg
 
 
 # Function to load coverpage.tsv and create a mapping of ACCESSION_NUMBER → Firm Name
@@ -64,10 +61,10 @@ def select_tercile_stocks(stocks_df):
 
 
 # Main function to process each quarter and generate index holdings
-def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings.xlsx"):
+def generate_index_holdings(output_file_path=cg.RESULT_EQUITIES_FILE_PATH):
     all_quarters_data = []
-    quarter_directories = [os.path.join(fillings_directory, d) for d in os.listdir(fillings_directory) if
-                           os.path.isdir(os.path.join(fillings_directory, d))]
+    quarter_directories = [os.path.join(cg.FILLINGS_PATH, d) for d in os.listdir(cg.FILLINGS_PATH) if
+                           os.path.isdir(os.path.join(cg.FILLINGS_PATH, d))]
 
     for quarter_directory in quarter_directories:
         print(f"Processing {quarter_directory}...")
@@ -96,9 +93,8 @@ def generate_index_holdings(fillings_directory, output_file_path="Index_Holdings
 def generate_equities_file_top(equities_per_firm, number_of_firms):
     global EQUITIES_PER_FIRM, NUMBER_OF_FIRMS
 
-    fillings_directory = "./fillings"
     EQUITIES_PER_FIRM = equities_per_firm
     NUMBER_OF_FIRMS = number_of_firms
 
     print(f'selecting {equities_per_firm} per {number_of_firms} with the TOP selection method')
-    generate_index_holdings(fillings_directory)
+    generate_index_holdings()

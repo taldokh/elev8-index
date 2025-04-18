@@ -240,8 +240,6 @@ def calculate_index_points(config_id: int):
     index_history_open = {}
     index_history_close = {}
 
-    delete_index_points()
-
     # Example usage
     # index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
     index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
