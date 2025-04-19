@@ -67,7 +67,7 @@ def fetch_prices_eod(ticker, start_date, end_date, api_token):
 
 
 # Calculate the index for a specific quarter based on the previous quarter's equities
-def calculate_quarterly_index(start_date, end_date, initial_index_value, index_creation_date, config_id: int):
+def calculate_quarterly_index(start_date, end_date, initial_index_value, config_id: int):
     def calculate_index_daily_price_change(date, index_last_price):
         factor = 0
 
@@ -142,7 +142,7 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, index_c
     )
 
     # Fetch tickers and weights for that quarter
-    rows = session.query(Equity.ticker, Equity.weight).filter(Equity.quarter == subquery).all()
+    rows = session.query(Equity.ticker, Equity.weight).filter(Equity.quarter == subquery, Equity.configuration_id == config_id).all()
     tickers_weights = {row[0]: row[1] for row in rows}
     tickers = list(tickers_weights.keys())
 
@@ -154,7 +154,6 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, index_c
         if price_series_open is not None or price_series_close is not None:
             prices_open[ticker] = price_series_open
             prices_close[ticker] = price_series_close
-        # time.sleep(RATE_LIMIT_SLEEP)
 
     if not prices_open or not prices_close:
         print("❌ No prices found for this quarter.")
@@ -189,7 +188,7 @@ def calculate_quarterly_index(start_date, end_date, initial_index_value, index_c
             continue
 
     for date in pd.date_range(start=start_date, end=end_date - timedelta(days=1), freq="B"):
-        if date == index_creation_date:
+        if date == cg.INDEX_CREATION_DATE:
             insert_index_to_db(initial_index_value, index_history_close[date], date, config_id)
         else:
             if is_trading_day(date):
@@ -235,23 +234,19 @@ def calculate_index_points(config_id: int):
     global latest_price
     global latest_Date
 
-    latest_price = 1000
+    latest_price = cg.INDEX_INITIAL_PRICE
 
     index_history_open = {}
     index_history_close = {}
 
-    # Example usage
-    # index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
-    index_creation_date = datetime(2013, 8, 15)  # Start from Q2 2013
-    end_date = datetime(2024, 2, 14)  # End at Q4 2023
-    quarter_ranges = generate_quarter_ranges(index_creation_date, end_date)
-    latest_Date = index_creation_date
+    quarter_ranges = generate_quarter_ranges(cg.INDEX_CREATION_DATE, cg.INDEX_END_DATE)
+    latest_Date = cg.INDEX_CREATION_DATE
 
-    index_history_open[index_creation_date] = latest_price
+    index_history_open[cg.INDEX_CREATION_DATE] = latest_price
 
 
     for start, end in quarter_ranges:
         if end < datetime.now():
-            initial_value = calculate_quarterly_index(start_date=start, end_date=end, initial_index_value=latest_price, index_creation_date=index_creation_date, config_id=config_id)
+            initial_value = calculate_quarterly_index(start_date=start, end_date=end, initial_index_value=latest_price, config_id=config_id)
         else:
             break

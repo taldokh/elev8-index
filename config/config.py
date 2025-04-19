@@ -1,4 +1,6 @@
 #DB
+from datetime import datetime
+
 DB_HOST = '10.10.248.105'
 DB_NAME = 'postgres'
 DB_USERNAME = 'postgres'
@@ -16,4 +18,8 @@ REBALANCE_DATES = [
 ]
 
 EOD_API_TOKEN = "67eee2ee694885.80164284"
+
+INDEX_CREATION_DATE = datetime(2013, 8, 15)
+INDEX_END_DATE = datetime(2024, 2, 14)
+INDEX_INITIAL_PRICE = 1000
 
