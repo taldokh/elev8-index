@@ -19,6 +19,8 @@ def load_cusip_ticker_mapping():
         raise FileNotFoundError(f"Missing {cg.CUSIP_TICKER_FILE_PATH}")
 
     cusip_ticker_df = pd.read_csv(cg.CUSIP_TICKER_FILE_PATH, dtype=str)
+    cusip_ticker_df["CUSIP"] = cusip_ticker_df["CUSIP"].str.strip()
+    cusip_ticker_df["Ticker"] = cusip_ticker_df["Ticker"].str.strip().str.upper()
     return cusip_ticker_df.set_index("CUSIP")["Ticker"].to_dict()
 
 
@@ -52,10 +54,15 @@ def process_excel_and_insert(config_id: int):
     # Read all sheets (quarters)
     with pd.ExcelFile(cg.RESULT_EQUITIES_FILE_PATH) as xls:
         for quarter in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name=quarter)
+            df = pd.read_excel(xls, sheet_name=quarter, dtype={"CUSIP": str})
 
             if "PERCENTAGE" not in df.columns:
                 raise KeyError(f"Missing 'PERCENTAGE' column in {quarter}")
+
+            df["CUSIP"] = df["CUSIP"].astype(str).str.strip()
+
+            rows_to_drop = df[df["CUSIP"].map(cusip_ticker_map).isna()]
+            print(f'{quarter}: null tickers: {rows_to_drop["CUSIP"]}')
 
             # Map CUSIP to Ticker
             df["TICKER"] = df["CUSIP"].map(cusip_ticker_map)

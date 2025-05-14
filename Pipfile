@@ -12,6 +12,8 @@ xlsxwriter = "*"
 psycopg2 = "*"
 yfinance = "*"
 sqlalchemy = "*"
+uvicorn = "*"
+fastapi = {extras = ["standard"], version = "*"}
 
 [dev-packages]
 

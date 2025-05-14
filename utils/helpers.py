@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -68,11 +69,6 @@ def is_configuration_already_exist(equities_per_firm, number_of_firms, selection
     session = Session()
 
     try:
-        # Example values to check (replace with actual env values or parameters)
-        equities_per_firm = int(os.getenv('EQUITIES_PER_FIRM', 4))  # Replace with real value
-        number_of_firms = int(os.getenv('NUMBER_OF_FIRMS', 3))  # Replace with real value
-        selection_type_top = str_to_bool(os.getenv('SELECTION_TYPE_TOP', 'True'))  # Replace with real value
-        relative_weight = str_to_bool(os.getenv('RELATIVE_WEIGHT', 'False'))  # Replace with real value
 
         # Query to check if the configuration already exists
         existing_config = session.query(Configuration).filter_by(
@@ -94,3 +90,28 @@ def is_configuration_already_exist(equities_per_firm, number_of_firms, selection
         raise e
     finally:
         session.close()
+
+
+def generate_quarter_ranges(start_date, end_date):
+    quarter_ranges = []
+    start_year = start_date.year
+    end_year = end_date.year
+    # Loop through each year from the start year to the end year
+    for year in range(start_year, end_year + 1):
+        for i, (month, day) in enumerate(cg.REBALANCE_DATES):
+            # Check if the quarter start date is within the given range
+            quarter_start_date = datetime(year, month, day)
+            # If the quarter starts in November, it might belong to the next year
+            if month == 11:
+                quarter_start_date = datetime(year, month, day)
+                quarter_end_date = datetime(year + 1, 2, 15)  # Next year's February
+            else:
+                quarter_end_date = datetime(year, cg.REBALANCE_DATES[(i + 1) % 4][0], cg.REBALANCE_DATES[(i + 1) % 4][1])
+            # Skip quarters that are outside the start and end date range
+            if quarter_start_date < start_date or quarter_start_date > end_date:
+                continue  # This quarter is outside the range
+            # Adjust quarter end date if it exceeds the provided end_date
+            if quarter_end_date > end_date:
+                quarter_end_date = end_date
+            quarter_ranges.append((quarter_start_date, quarter_end_date))
+    return quarter_ranges

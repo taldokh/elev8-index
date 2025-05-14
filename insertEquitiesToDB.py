@@ -1,7 +1,5 @@
 import os
 import pandas as pd
-import psycopg2
-from psycopg2.extras import execute_values
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import config.config as cg
@@ -19,6 +17,8 @@ def load_cusip_ticker_mapping():
         raise FileNotFoundError(f"Missing {cg.CUSIP_TICKER_FILE_PATH}")
 
     cusip_ticker_df = pd.read_csv(cg.CUSIP_TICKER_FILE_PATH, dtype=str)
+    cusip_ticker_df["CUSIP"] = cusip_ticker_df["CUSIP"].str.strip()
+    cusip_ticker_df["Ticker"] = cusip_ticker_df["Ticker"].str.strip().str.upper()
     return cusip_ticker_df.set_index("CUSIP")["Ticker"].to_dict()
 
 
@@ -32,7 +32,7 @@ def get_quarter_start_date(quarter_str):
     }
 
     year = quarter_str[:4]
-    quarter = quarter_str[-2:]
+    quarter = quarter_str[-2:].lower()
     quarter_date = quarter_to_date.get(quarter)
 
     if quarter_date:
@@ -42,50 +42,54 @@ def get_quarter_start_date(quarter_str):
 
 
 def calculate_weights_for_quarter(df):
-    """Calculate the weight for each ticker in a quarter."""
-    # Count unique equities in the quarter
-    unique_equities = df["TICKER"].nunique()
+    """Calculate the weight for each ticker based on frequency across firms."""
+    # Frequency of each ticker
+    ticker_counts = df["TICKER"].value_counts()
 
-    # Calculate equal weight per equity
-    equal_weight = 100 / len(df["TICKER"])
+    # Total number of holdings (not unique)
+    total_tickers = ticker_counts.sum()
 
-    # Aggregate weights for duplicate tickers
-    #df = df.groupby("TICKER", as_index=False).agg({"CUSIP": "first"})
-    df["WEIGHT"] = df["TICKER"].map(df["TICKER"].value_counts() * equal_weight)
+    # Calculate proportional weight
+    df["WEIGHT"] = df["TICKER"].map(lambda ticker: (ticker_counts[ticker] / total_tickers) * 100)
 
-    # Round to 4 decimal places
+    # Round weights
     df["WEIGHT"] = df["WEIGHT"].round(4)
 
+    # Drop duplicate equities (per firm per quarter)
     df.drop_duplicates(subset=['CUSIP'], inplace=True)
+
     return df
 
 
 def process_excel_and_insert(config_id: int):
-    """Read the Excel file, map CUSIP to Ticker, calculate weight, and insert into PostgreSQL."""
+    """Read the Excel file, map CUSIP to Ticker, calculate weights, and insert into DB."""
     if not os.path.exists(cg.RESULT_EQUITIES_FILE_PATH):
         raise FileNotFoundError(f"Missing {cg.RESULT_EQUITIES_FILE_PATH}")
 
     cusip_ticker_map = load_cusip_ticker_mapping()
     all_equities = []
 
-    # Read all sheets (quarters)
     with pd.ExcelFile(cg.RESULT_EQUITIES_FILE_PATH) as xls:
         for quarter in xls.sheet_names:
-            df = pd.read_excel(xls, sheet_name=quarter)
+            df = pd.read_excel(xls, sheet_name=quarter, dtype={"CUSIP": str})
+
+            df["CUSIP"] = df["CUSIP"].astype(str).str.strip()
+
+            rows_to_drop = df[df["CUSIP"].map(cusip_ticker_map).isna()]
+            print(f'{quarter}: null tickers: {rows_to_drop["CUSIP"]}')
 
             # Map CUSIP to Ticker
             df["TICKER"] = df["CUSIP"].map(cusip_ticker_map)
 
-            # Drop rows where ticker is missing
+            # Drop rows with missing ticker
             df.dropna(subset=["TICKER"], inplace=True)
 
-            # Get the first date of the quarter
+            # Format quarter start date
             formatted_quarter_date = get_quarter_start_date(quarter)
 
-            # Calculate weight for each ticker
+            # Calculate weighted holdings
             df = calculate_weights_for_quarter(df)
 
-            # Append to all_data list
             for _, row in df.iterrows():
                 equity = Equity(
                     ticker=row["TICKER"],
@@ -95,32 +99,36 @@ def process_excel_and_insert(config_id: int):
                 )
                 all_equities.append(equity)
 
-    # Insert into PostgreSQL
     insert_into_db(all_equities)
 
 
 def insert_into_db(all_equities):
+    """Insert processed equity data into the database."""
     try:
         session.add_all(all_equities)
         session.commit()
-        print(f"Inserted {len(all_equities)} records successfully.")
+        print(f"Inserted {len(all_equities)} equity records successfully.")
     except Exception as e:
+        session.rollback()
+        print(f"Database error during insert: {e}")
+    finally:
         session.close()
-        print(f"Database error: {e}")
 
 
 def delete_all_equities():
+    """Delete all rows from the equities table."""
     try:
         session.query(Equity).delete()
         session.commit()
         print("Deleted all rows in equities table.")
-        print("All rows in the equities table have been deleted.")
     except Exception as e:
+        session.rollback()
+        print(f"Error deleting equities: {e}")
+    finally:
         session.close()
-        print(f"Error deleting rows: {e}")
 
 
 def insert_equities_to_db_equal_weight(config_id: int):
-    print(f'processing {cg.RESULT_EQUITIES_FILE_PATH} and inserting to DB with equal weight')
+    """Main entry point to process and insert equities using proportional weighting."""
+    print(f"Processing {cg.RESULT_EQUITIES_FILE_PATH} with proportional weights...")
     process_excel_and_insert(config_id)
-

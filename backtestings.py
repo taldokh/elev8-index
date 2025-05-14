@@ -10,8 +10,8 @@ bool_combinations = [
     (False, False)
 ]
 
-for equities_per_firm in range(1, 11):
-    for number_of_firms in range(1, 11):
+for number_of_firms in range(10, 0, -1):
+    for equities_per_firm in range(10, 0, -1):
         for selection_type_top, relative_weight in bool_combinations:
             # Set env vars
             os.environ["EQUITIES_PER_FIRM"] = str(equities_per_firm)

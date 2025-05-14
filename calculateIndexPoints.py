@@ -8,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 import config.config as cg
 from sqlalchemy import create_engine, func
 from models import IndexPoint, Equity
+from utils import helpers
 
 # Database Configuration
 engine = create_engine(cg.DB_CONNECTION_URL)
@@ -18,18 +19,6 @@ index_history_open = {}
 index_history_close = {}
 latest_price = 0
 latest_Date = 0
-
-
-def get_quarter_ranges(start_year, end_year):
-    ranges = []
-    for year in range(start_year, end_year + 1):
-        for i in range(len(cg.REBALANCE_DATES)):
-            start_month, start_day = cg.REBALANCE_DATES[i]
-            end_month, end_day = cg.REBALANCE_DATES[(i + 1) % 4]
-            start_date = datetime(year if i < 3 else year, start_month, start_day)
-            end_date = datetime(year if i < 3 else year + 1, end_month, end_day)
-            ranges.append((start_date, end_date))
-    return ranges
 
 
 # Fetch the stock prices for a ticker in the given range
@@ -204,29 +193,6 @@ def delete_index_points():
         session.close()
         print(f"Database error: {e}")
 
-def generate_quarter_ranges(start_date, end_date):
-    quarter_ranges = []
-    start_year = start_date.year
-    end_year = end_date.year
-    # Loop through each year from the start year to the end year
-    for year in range(start_year, end_year + 1):
-        for i, (month, day) in enumerate(cg.REBALANCE_DATES):
-            # Check if the quarter start date is within the given range
-            quarter_start_date = datetime(year, month, day)
-            # If the quarter starts in November, it might belong to the next year
-            if month == 11:
-                quarter_start_date = datetime(year, month, day)
-                quarter_end_date = datetime(year + 1, 2, 15)  # Next year's February
-            else:
-                quarter_end_date = datetime(year, cg.REBALANCE_DATES[(i + 1) % 4][0], cg.REBALANCE_DATES[(i + 1) % 4][1])
-            # Skip quarters that are outside the start and end date range
-            if quarter_start_date < start_date or quarter_start_date > end_date:
-                continue  # This quarter is outside the range
-            # Adjust quarter end date if it exceeds the provided end_date
-            if quarter_end_date > end_date:
-                quarter_end_date = end_date
-            quarter_ranges.append((quarter_start_date, quarter_end_date))
-    return quarter_ranges
 
 def calculate_index_points(config_id: int):
     global index_history_open
@@ -239,7 +205,7 @@ def calculate_index_points(config_id: int):
     index_history_open = {}
     index_history_close = {}
 
-    quarter_ranges = generate_quarter_ranges(cg.INDEX_CREATION_DATE, cg.INDEX_END_DATE)
+    quarter_ranges = helpers.generate_quarter_ranges(cg.INDEX_CREATION_DATE, cg.INDEX_END_DATE)
     latest_Date = cg.INDEX_CREATION_DATE
 
     index_history_open[cg.INDEX_CREATION_DATE] = latest_price
