@@ -14,8 +14,8 @@ import config.config as cg
 
 def backtest(selection_type_top: bool = helpers.str_to_bool(os.environ.get('SELECTION_TYPE_TOP')),
              relative_weight: bool = helpers.str_to_bool(os.environ.get('RELATIVE_WEIGHT')),
-             equities_per_firm: int = helpers.validate_int_env_var('EQUITIES_PER_FIRM'),
-             number_of_firms: int = helpers.validate_int_env_var('NUMBER_OF_FIRMS')):
+             equities_per_firm: int = helpers.validate_int_env_var(os.environ.get('EQUITIES_PER_FIRM')),
+             number_of_firms: int = helpers.validate_int_env_var(os.environ.get('NUMBER_OF_FIRMS'))):
 
     try:
         configuration_exist = helpers.is_configuration_already_exist(selection_type_top=selection_type_top,

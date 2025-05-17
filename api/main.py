@@ -18,7 +18,7 @@ app = FastAPI()
 # Allow frontend to communicate with backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # frontend URL
+    allow_origins=["*"],  # frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,7 +113,6 @@ def get_index_points(config_id: int = Query(...), db: Session = Depends(get_db))
         .order_by(IndexPoint.market_date)
         .all()
     )
-    print(points)
     return [
         {
             "day_start_points": p.day_start_points,

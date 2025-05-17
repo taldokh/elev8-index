@@ -13,11 +13,6 @@ bool_combinations = [
 for number_of_firms in range(10, 0, -1):
     for equities_per_firm in range(10, 0, -1):
         for selection_type_top, relative_weight in bool_combinations:
-            # Set env vars
-            os.environ["EQUITIES_PER_FIRM"] = str(equities_per_firm)
-            os.environ["NUMBER_OF_FIRMS"] = str(number_of_firms)
-            os.environ["SELECTION_TYPE_TOP"] = str(selection_type_top)
-            os.environ["RELATIVE_WEIGHT"] = str(relative_weight)
 
             print(f"\nRunning backtest with: "
                   f"EQUITIES_PER_FIRM={equities_per_firm}, "
@@ -26,6 +21,6 @@ for number_of_firms in range(10, 0, -1):
                   f"RELATIVE_WEIGHT={relative_weight}\n")
 
             try:
-                backtest()
+                backtest(selection_type_top=selection_type_top, relative_weight=relative_weight, number_of_firms=number_of_firms, equities_per_firm=equities_per_firm)
             except Exception as e:
                 print(f"Backtest failed for this config: {e}")
