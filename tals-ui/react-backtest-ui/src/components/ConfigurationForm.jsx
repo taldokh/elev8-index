@@ -26,11 +26,11 @@ export default function ConfigurationForm({ onBacktestComplete }) {
         equities_per_firm: parseInt(form.equities_per_firm),
         number_of_firms: parseInt(form.number_of_firms),
       };
-      const existsResponse = await axios.get('http://localhost:8010/conf-exists', { params });
+      const existsResponse = await axios.get(import.meta.env.VITE_API_URL + '/conf-exists', { params });
       const { exists, id: configId } = existsResponse.data;
 
       if (exists) {
-        const readyResponse = await axios.get('http://localhost:8010/conf-ready', {
+        const readyResponse = await axios.get(import.meta.env.VITE_API_URL + '/conf-ready', {
           params: { conf_id: configId },
         });
 
@@ -42,7 +42,7 @@ export default function ConfigurationForm({ onBacktestComplete }) {
         }
       } else {
           // If config doesn't exist, trigger the backtest
-        await axios.post('http://localhost:8010/run-backtest', params);
+        await axios.post(import.meta.env.VITE_API_URL + '/run-backtest', params);
 
         // You could poll for readiness here, or just ask user to retry in a few moments
         alert('Backtest started. Please wait and try again shortly.');
