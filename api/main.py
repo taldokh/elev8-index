@@ -2,16 +2,23 @@
 import os
 from collections import defaultdict
 from datetime import date
-from fastapi import FastAPI, BackgroundTasks, Depends, Query
+
+import numpy as np
+import pandas as pd
+from fastapi import FastAPI, BackgroundTasks, Depends, Query, HTTPException
 from pydantic import BaseModel
 import subprocess
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.operators import and_
+from config import config as cg
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+import io
+from datetime import datetime
 
 from main import backtest
 from models import (Configuration, IndexPoint, Equity)
 from .database import get_db
-from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
@@ -141,3 +148,135 @@ def get_index_points(config_id: int = Query(...), db: Session = Depends(get_db))
         }
         for p in points
     ]
+
+@app.get("/index-analytics")
+def get_index_analytics(config_id: int = Query(...), db: Session = Depends(get_db)):
+    rows = (
+        db.query(IndexPoint)
+        .filter(IndexPoint.configuration_id == config_id)
+        .order_by(IndexPoint.market_date)
+        .all()
+    )
+
+    if not rows or len(rows) < 2:
+        return {"error": "Not enough data to compute analytics."}
+
+    df = pd.DataFrame([{
+        "date": row.market_date,
+        "value": row.day_end_points
+    } for row in rows])
+
+    df = df.sort_values("date")
+    df.set_index("date", inplace=True)
+
+    df["daily_return"] = df["value"].pct_change()
+
+    print(df["value"].iloc[-1])
+    print(df["value"].iloc[0])
+    total_return = df["value"].iloc[-1] / cg.INDEX_INITIAL_PRICE - 1
+    annualized_return = (1 + total_return) ** (252 / len(df)) - 1
+    annualized_volatility = df["daily_return"].std() * np.sqrt(252)
+    sharpe_ratio = (
+        annualized_return / annualized_volatility if annualized_volatility != 0 else 0
+    )
+
+    rolling_max = df["value"].cummax()
+    drawdowns = df["value"] / rolling_max - 1
+    max_drawdown = drawdowns.min()
+
+    return {
+        "total_return": round(total_return * 100, 2),  # in %
+        "annualized_return": round(annualized_return * 100, 2),  # in %
+        "annualized_volatility": round(annualized_volatility * 100, 2),  # in %
+        "sharpe_ratio": round(sharpe_ratio, 2),
+        "max_drawdown": round(max_drawdown * 100, 2)  # in %
+    }
+
+@app.get("/export")
+async def export_data(config_id: int, db: Session = Depends(get_db)):
+    try:
+        # Get index points data
+        index_points = (
+            db.query(IndexPoint)
+            .filter(IndexPoint.configuration_id == config_id)
+            .order_by(IndexPoint.market_date)
+            .all()
+        )
+        
+        index_points_df = pd.DataFrame([{
+            'date': point.market_date,
+            'day_start_points': point.day_start_points,
+            'day_end_points': point.day_end_points
+        } for point in index_points])
+        
+        # Get holdings data
+        holdings = (
+            db.query(Equity)
+            .filter(Equity.configuration_id == config_id)
+            .order_by(Equity.quarter, Equity.weight.desc())
+            .all()
+        )
+        
+        holdings_df = pd.DataFrame([{
+            'quarter': holding.quarter,
+            'ticker': holding.ticker,
+            'weight': holding.weight
+        } for holding in holdings])
+        
+        # Get analytics data using the existing analytics function
+        analytics = get_index_analytics(config_id, db)
+        analytics_df = pd.DataFrame([analytics])
+        
+        # Create Excel file in memory
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            # Write DataFrames to Excel
+            index_points_df.to_excel(writer, sheet_name='Index Points', index=False)
+            holdings_df.to_excel(writer, sheet_name='Holdings', index=False)
+            analytics_df.to_excel(writer, sheet_name='Analytics', index=False)
+            
+            # Auto-adjust columns width for each sheet
+            workbook = writer.book
+            
+            # Index Points sheet
+            worksheet = writer.sheets['Index Points']
+            for idx, col in enumerate(index_points_df.columns):
+                max_len = max(
+                    index_points_df[col].astype(str).apply(len).max(),
+                    len(str(col))
+                ) + 2
+                worksheet.set_column(idx, idx, max_len)
+            
+            # Holdings sheet
+            worksheet = writer.sheets['Holdings']
+            for idx, col in enumerate(holdings_df.columns):
+                max_len = max(
+                    holdings_df[col].astype(str).apply(len).max(),
+                    len(str(col))
+                ) + 2
+                worksheet.set_column(idx, idx, max_len)
+            
+            # Analytics sheet
+            worksheet = writer.sheets['Analytics']
+            for idx, col in enumerate(analytics_df.columns):
+                max_len = max(
+                    analytics_df[col].astype(str).apply(len).max(),
+                    len(str(col))
+                ) + 2
+                worksheet.set_column(idx, idx, max_len)
+        
+        output.seek(0)
+        
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"backtest_export_{config_id}_{timestamp}.xlsx"
+        
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,0 +1,23 @@
+.analytics-panel {
+    background-color: #f5f7fa;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .analytics-panel h2 {
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  .analytics-panel ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  
+  .analytics-panel li {
+    margin-bottom: 0.5rem;
+    font-size: 1rem;
+  }
+  

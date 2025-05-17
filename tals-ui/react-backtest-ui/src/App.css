@@ -201,4 +201,26 @@ canvas {
   .section-content {
     font-size: 0.95rem;
   }
+
 }
+
+.results-section {
+  display: flex;
+  gap: 2rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.results-header h2 {
+  margin: 0;
+  color: #333;
+}
+
