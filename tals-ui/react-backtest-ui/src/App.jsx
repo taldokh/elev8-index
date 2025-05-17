@@ -3,6 +3,8 @@ import ConfigurationForm from './components/ConfigurationForm';
 import IndexGraph from './components/IndexGraph';
 import './App.css';
 import logo from './assets/Elev8.png';
+import HoldingsTable from './components/QuarterlyHoldings';
+import QuarterlyHoldings from './components/QuarterlyHoldings';
 
 function ToggleSection({ title, children }) {
   const [expanded, setExpanded] = useState(false);
@@ -37,6 +39,7 @@ function App() {
 
       <ConfigurationForm onBacktestComplete={handleBacktestComplete} />
       <IndexGraph configId={configId} refreshTrigger={trigger} />
+      <QuarterlyHoldings configId={configId} />
 
       {/* 🧠 INFO SECTIONS */}
       <ToggleSection title="Why Elev8?">

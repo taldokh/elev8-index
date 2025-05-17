@@ -1,0 +1,23 @@
+.holdings-container {
+    margin: 2rem auto;
+    padding: 1rem;
+    max-width: 600px;
+  }
+  
+  .holdings-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  
+  .holdings-table th,
+  .holdings-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .holdings-table th {
+    background-color: #f2f2f2;
+  }
+  

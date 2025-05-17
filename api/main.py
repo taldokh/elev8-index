@@ -1,5 +1,6 @@
 # app/main.py
 import os
+from collections import defaultdict
 from datetime import date
 from fastapi import FastAPI, BackgroundTasks, Depends, Query
 from pydantic import BaseModel
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql.operators import and_
 
 from main import backtest
-from models import (Configuration, IndexPoint)
+from models import (Configuration, IndexPoint, Equity)
 from .database import get_db
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -90,6 +91,24 @@ def conf_ready(conf_id: int, db: Session = Depends(get_db)):
     exists = db.query(IndexPoint).filter_by(configuration_id=conf_id, market_date=target_date).first()
 
     return {"ready": bool(exists)}
+
+@app.get("/equities-by-quarter")
+def get_equities_by_quarter(config_id: int = Query(...), db: Session = Depends(get_db)):
+    equities = (
+        db.query(Equity)
+        .filter(Equity.configuration_id == config_id)
+        .order_by(Equity.quarter, Equity.weight.desc())
+        .all()
+    )
+
+    result = defaultdict(list)
+    for eq in equities:
+        result[eq.quarter.isoformat()].append({
+            "ticker": eq.ticker,
+            "weight": float(eq.weight)
+        })
+
+    return result
 
 @app.get("/index-points")
 def get_index_points(config_id: int = Query(...), db: Session = Depends(get_db)):
