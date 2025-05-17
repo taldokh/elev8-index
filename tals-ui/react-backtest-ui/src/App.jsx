@@ -32,7 +32,7 @@ function App() {
       {/* ✅ LOGO SECTION */}
       <div className="header">
         <img src={logo} alt="Logo" />
-        <h1>Backtesting</h1>
+        <h1>wowowow</h1>
       </div>
 
       <ConfigurationForm onBacktestComplete={handleBacktestComplete} />
