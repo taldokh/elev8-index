@@ -20,7 +20,7 @@ export default function IndexGraph({ configId, refreshTrigger }) {
     if (!configId) return;
 
     axios
-      .get('http://localhost:8010/index-points', {
+      .get(import.meta.env.VITE_API_URL + '/index-points', {
         params: { config_id: configId },
       })
       .then((res) => {
