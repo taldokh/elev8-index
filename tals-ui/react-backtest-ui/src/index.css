@@ -13,9 +13,14 @@
 }
 
 body {
-  margin: 0;
-  font-family: inherit;
+  font-family: 'Inter', sans-serif;
   line-height: inherit;
   background-color: #ffffff;
+  overflow-x: hidden;
   color: #213547;
+  width: 100%;
+}
+
+* {
+  box-sizing: border-box;
 }

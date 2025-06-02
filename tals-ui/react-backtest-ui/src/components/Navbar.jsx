@@ -6,46 +6,48 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="nav-container">
-        <div className="nav-logo">Elev8</div>
+      <div className="nav-logo">Elev8</div>
 
-        <button
-          className="nav-toggle"
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle menu"
-        >
-          <span className="hamburger"></span>
-          <span className="hamburger"></span>
-          <span className="hamburger"></span>
-        </button>
+      <div className="nav-wrapper">
+        <div className="nav-container">
+          <button
+            className="nav-toggle"
+            onClick={() => setIsOpen(!isOpen)}
+            aria-label="Toggle menu"
+          >
+            <span className="hamburger"></span>
+            <span className="hamburger"></span>
+            <span className="hamburger"></span>
+          </button>
 
-        <ul className={`nav-links ${isOpen ? 'nav-active' : ''}`}>
-          <li>
-            <NavLink to="/" exact="true" className="nav-link" onClick={() => setIsOpen(false)}>
-              Home
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/about" className="nav-link" onClick={() => setIsOpen(false)}>
-              About
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/portfolio" className="nav-link" onClick={() => setIsOpen(false)}>
-              Portfolio
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/contact" className="nav-link" onClick={() => setIsOpen(false)}>
-              Contact
-            </NavLink>
-          </li>
-        </ul>
+          <ul className={`nav-links ${isOpen ? 'nav-active' : ''}`}>
+            <li>
+              <NavLink to="/" end className="nav-link" onClick={() => setIsOpen(false)}>
+                Home
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/about" className="nav-link" onClick={() => setIsOpen(false)}>
+                About
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/portfolio" className="nav-link" onClick={() => setIsOpen(false)}>
+                Portfolio
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/contact" className="nav-link" onClick={() => setIsOpen(false)}>
+                Contact
+              </NavLink>
+            </li>
+          </ul>
+        </div>
       </div>
 
       <style>{`
-        /* Navbar Container */
         .navbar {
+          width: 100vw;
           background-color: #0d1b2a;
           color: #e0e0e0;
           padding: 0 20px;
@@ -53,24 +55,35 @@ function Navbar() {
           position: sticky;
           top: 0;
           z-index: 1000;
-        }
 
-        .nav-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          height: 60px;
           display: flex;
           align-items: center;
+          height: 60px;
           justify-content: space-between;
         }
 
-        /* Logo */
         .nav-logo {
           font-size: 1.8rem;
           font-weight: 700;
           letter-spacing: 2px;
           color: #00bfff;
           user-select: none;
+          display: flex;
+          align-items: center;
+        }
+
+        .nav-wrapper {
+          flex-grow: 1;
+          display: flex;
+          justify-content: flex-end;
+          max-width: 1200px;
+          margin-left: 20px; /* spacing between logo and nav */
+        }
+
+        .nav-container {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
         }
 
         /* Links */
@@ -122,6 +135,8 @@ function Navbar() {
           background: transparent;
           border: none;
           cursor: pointer;
+          padding: 0;
+          margin-left: 20px;
         }
 
         .hamburger {
@@ -149,6 +164,7 @@ function Navbar() {
             padding: 20px;
             transform: translateX(100%);
             transition: transform 0.3s ease;
+            z-index: 999;
           }
 
           .nav-links.nav-active {

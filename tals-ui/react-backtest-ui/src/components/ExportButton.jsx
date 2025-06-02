@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import './ExportButton.css';
+import { Fab, CircularProgress, Tooltip } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
 
 function ExportButton({ configId }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -38,14 +39,24 @@ function ExportButton({ configId }) {
   };
 
   return (
-    <button 
-      className="export-button" 
-      onClick={handleExport}
-      disabled={isLoading || !configId}
-    >
-      {isLoading ? 'Exporting...' : 'Export to Excel'}
-    </button>
+    <Tooltip title="Export to Excel">
+      <span> {/* Tooltip won't show if child is disabled directly, so wrap it */}
+        <Fab
+          color="success"
+          onClick={handleExport}
+          disabled={isLoading || !configId}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            left: 24,
+            zIndex: 1000,
+          }}
+        >
+          {isLoading ? <CircularProgress size={24} color="inherit" /> : <DownloadIcon />}
+        </Fab>
+      </span>
+    </Tooltip>
   );
 }
 
-export default ExportButton; 
+export default ExportButton;

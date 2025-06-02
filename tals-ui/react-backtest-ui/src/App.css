@@ -8,16 +8,22 @@ body {
   /* Remove flexbox from body */
 }
 
-.container {
-  width: 100%;
-  max-width: 1200px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background-color: #ffffff;
+.main-container {
+  width: 100%;         /* Allow full-screen width */
+  max-width: none;     /* Remove any max-width if set before */
+  margin: 0 auto;      /* Center on larger viewports */
+  padding: 16px;       /* Optional padding around edges */
+  background-color: #f8f9fa;
   border-radius: 8px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-sizing: border-box;
+  color: #333;
+}
+
+.header {
+  text-align: center;
+}
+
+.results-section {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }

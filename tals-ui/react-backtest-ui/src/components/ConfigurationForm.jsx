@@ -1,5 +1,16 @@
 import { useState } from 'react';
 import axios from 'axios';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  TextField,
+  FormControlLabel,
+  Checkbox,
+  Button,
+  Box,
+} from '@mui/material';
 
 export default function ConfigurationForm({ onBacktestComplete }) {
   const [form, setForm] = useState({
@@ -35,16 +46,13 @@ export default function ConfigurationForm({ onBacktestComplete }) {
         });
 
         if (readyResponse.data.ready) {
-          onBacktestComplete(configId); // ✅ tell App it's ready
+          onBacktestComplete(configId);
           return;
         } else {
-          alert('Backtest is already running. please try again later');
+          alert('Backtest is already running. Please try again later.');
         }
       } else {
-          // If config doesn't exist, trigger the backtest
         await axios.post(import.meta.env.VITE_API_URL + '/run-backtest', params);
-
-        // You could poll for readiness here, or just ask user to retry in a few moments
         alert('Backtest started. Please wait and try again shortly.');
       }
     } catch (error) {
@@ -54,45 +62,65 @@ export default function ConfigurationForm({ onBacktestComplete }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Configuration</h2>
-      <label>
-        Equities per Firm:
-        <input
-          type="number"
-          name="equities_per_firm"
-          value={form.equities_per_firm}
-          onChange={handleChange}
-        />
-      </label>
-      <label>
-        Number of Firms:
-        <input
-          type="number"
-          name="number_of_firms"
-          value={form.number_of_firms}
-          onChange={handleChange}
-        />
-      </label>
-      <label>
-        Selection Type Top:
-        <input
-          type="checkbox"
-          name="selection_type_top"
-          checked={form.selection_type_top}
-          onChange={handleChange}
-        />
-      </label>
-      <label>
-        Relative Weight:
-        <input
-          type="checkbox"
-          name="relative_weight"
-          checked={form.relative_weight}
-          onChange={handleChange}
-        />
-      </label>
-      <button type="submit">Run Backtest</button>
-    </form>
+    <Box display="flex" justifyContent="center" mt={4}>
+      <Card sx={{ height: '100%', width: '100%',display: 'flex', flexDirection: 'column', minHeight: '60vh' }}>
+        <CardHeader title="Configuration" titleTypographyProps={{ variant: 'h6', fontWeight: 600, sx: { fontFamily: 'Inter, sans-serif' }}}/>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <Box mb={2}>
+              <TextField
+                fullWidth
+                label="Equities per Firm"
+                type="number"
+                name="equities_per_firm"
+                value={form.equities_per_firm}
+                onChange={handleChange}
+              />
+            </Box>
+
+            <Box mb={2}>
+              <TextField
+                fullWidth
+                label="Number of Firms"
+                type="number"
+                name="number_of_firms"
+                value={form.number_of_firms}
+                onChange={handleChange}
+              />
+            </Box>
+
+            <Box mb={2}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="selection_type_top"
+                    checked={form.selection_type_top}
+                    onChange={handleChange}
+                  />
+                }
+                label="Selection Type Top"
+              />
+            </Box>
+
+            <Box mb={2}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    name="relative_weight"
+                    checked={form.relative_weight}
+                    onChange={handleChange}
+                  />
+                }
+                label="Relative Weight"
+              />
+            </Box>
+
+            <Button type="submit" variant="contained" fullWidth>
+              Run Backtest
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </Box>
   );
 }

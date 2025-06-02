@@ -1,13 +1,17 @@
-// src/pages/AboutPage.jsx
 import React from 'react';
 import About from '../components/About';
+import { Container, Typography, Box } from '@mui/material';
 
 function AboutPage() {
   return (
-    <main style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-      <h1>About Elev8</h1>
-      <About />
-    </main>
+    <Container maxWidth="md" sx={{ py: 6 }}>
+      <Typography variant="h4" fontWeight={700} gutterBottom>
+        About Elev8
+      </Typography>
+      <Box mt={4}>
+        <About />
+      </Box>
+    </Container>
   );
 }
 

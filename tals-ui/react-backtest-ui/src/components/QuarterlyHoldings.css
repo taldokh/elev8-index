@@ -1,23 +1,76 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9fb;
+  display: flex;
+  justify-content: center;
+  align-items: start;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
 .holdings-container {
-    margin: 2rem auto;
-    padding: 1rem;
-    max-width: 600px;
-  }
-  
-  .holdings-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
-  }
-  
-  .holdings-table th,
-  .holdings-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-  }
-  
-  .holdings-table th {
-    background-color: #f2f2f2;
-  }
-  
+  background-color: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  max-width: 700px;
+  width: 100%;
+}
+
+.holdings-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  color: #444;
+}
+
+select {
+  margin-left: 0.5rem;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.holdings-table th,
+.holdings-table td {
+  border: 1px solid #e0e0e0;
+  padding: 12px;
+  text-align: left;
+}
+
+.holdings-table th {
+  background-color: #f0f4f8;
+  color: #333;
+  font-weight: 600;
+}
+
+.holdings-table tr:hover {
+  background-color: #f9f9f9;
+}
+
+.holdings-table td {
+  color: #555;
+}
+
+p {
+  text-align: center;
+  color: #777;
+  font-size: 1rem;
+}

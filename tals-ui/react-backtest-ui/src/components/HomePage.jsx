@@ -4,7 +4,8 @@ import IndexGraph from './IndexGraph';
 import QuarterlyHoldings from './QuarterlyHoldings';
 import AnalyticsPanel from './AnalyticsPanel';
 import ExportButton from './ExportButton';
-import About from './About';
+import '../App.css'; // assumes .main-container styles here
+import { Box } from '@mui/material';
 
 function HomePage() {
   const [configId, setConfigId] = useState(null);
@@ -16,22 +17,41 @@ function HomePage() {
   };
 
   return (
-    <div className="container">
-      <div className="header">
-        <h1>Backtesting</h1>
-      </div>
+    <div className="main-container">
+      {/* Flex container for Config + Graph */}
+      <Box
+        display="flex"
+        alignItems="stretch"
+        width="100%"       // fill the entire parent width
+        height="100%"     // or whatever fixed height you want
+        padding="1vh"
+      >
+        <Box sx={{ width: '30%', pr: 1 }}> 
+          <ConfigurationForm onBacktestComplete={handleBacktestComplete} />
+        </Box>
 
-      <ConfigurationForm onBacktestComplete={handleBacktestComplete} />
-      <IndexGraph configId={configId} refreshTrigger={trigger} />
+        <Box sx={{ width: '70%', pl: 1 }}>
+          <IndexGraph configId={configId} refreshTrigger={trigger} />
+        </Box>
+      </Box>
 
-      <div className="results-section">
-        <div className="results-header">
-          <h2>Results</h2>
-          <ExportButton configId={configId} />
-        </div>
-        <QuarterlyHoldings configId={configId} />
-        <AnalyticsPanel configId={configId} />
-      </div>
+      <Box
+        display="flex"
+        alignItems="stretch"
+        width="100%"       // fill the entire parent width
+        height="100%"     // or whatever fixed height you want
+        padding="1vh"
+      >
+        <Box sx={{ width: '30%', pr: 1 }}> 
+          <AnalyticsPanel configId={configId} />
+        </Box>
+
+        {/* Right: Index Graph (70% width) */}
+        <Box sx={{ width: '70%', pl: 1 }}>
+          <QuarterlyHoldings configId={configId} />
+        </Box>
+      </Box>     
+      <ExportButton configId={configId} />
     </div>
   );
 }
