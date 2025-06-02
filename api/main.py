@@ -5,6 +5,7 @@ from datetime import date
 
 import numpy as np
 import pandas as pd
+import requests
 from fastapi import FastAPI, BackgroundTasks, Depends, Query, HTTPException
 from pydantic import BaseModel
 import subprocess

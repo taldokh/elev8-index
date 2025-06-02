@@ -23,7 +23,7 @@ const Section = ({ title, children }) => (
   </Accordion>
 );
 
-export default function About() {
+export default function Overview() {
   return (
     <Box>
       <Section title="Why Elev8?">

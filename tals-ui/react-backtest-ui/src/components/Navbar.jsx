@@ -27,8 +27,8 @@ function Navbar() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/about" className="nav-link" onClick={() => setIsOpen(false)}>
-                About
+              <NavLink to="/overview" className="nav-link" onClick={() => setIsOpen(false)}>
+                Overview
               </NavLink>
             </li>
             <li>
