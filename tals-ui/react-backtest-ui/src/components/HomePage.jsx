@@ -21,36 +21,39 @@ function HomePage() {
       {/* Flex container for Config + Graph */}
       <Box
         display="flex"
+        flexDirection={{ xs: 'column', sm: 'row' }}
         alignItems="stretch"
-        width="100%"       // fill the entire parent width
-        height="100%"     // or whatever fixed height you want
+        width="100%"
+        height="100%"
         padding="1vh"
       >
-        <Box sx={{ width: '30%', pr: 1 }}> 
+        <Box sx={{ width: { xs: '100%', sm: '30%' }, pr: { sm: 1 }, pb: { xs: 1, sm: 0 } }}> 
           <ConfigurationForm onBacktestComplete={handleBacktestComplete} />
         </Box>
 
-        <Box sx={{ width: '70%', pl: 1 }}>
+        <Box sx={{ width: { xs: '100%', sm: '70%' }, pl: { sm: 1 } }}>
           <IndexGraph configId={configId} refreshTrigger={trigger} />
         </Box>
       </Box>
 
+      {/* Flex container for Analytics + Table */}
       <Box
         display="flex"
+        flexDirection={{ xs: 'column', sm: 'row' }}
         alignItems="stretch"
-        width="100%"       // fill the entire parent width
-        height="100%"     // or whatever fixed height you want
+        width="100%"
+        height="100%"
         padding="1vh"
       >
-        <Box sx={{ width: '30%', pr: 1 }}> 
+        <Box sx={{ width: { xs: '100%', sm: '30%' }, pr: { sm: 1 }, pb: { xs: 1, sm: 0 } }}> 
           <AnalyticsPanel configId={configId} />
         </Box>
 
-        {/* Right: Index Graph (70% width) */}
-        <Box sx={{ width: '70%', pl: 1 }}>
+        <Box sx={{ width: { xs: '100%', sm: '70%' }, pl: { sm: 1 } }}>
           <QuarterlyHoldings configId={configId} />
         </Box>
       </Box>     
+
       <ExportButton configId={configId} />
     </div>
   );
