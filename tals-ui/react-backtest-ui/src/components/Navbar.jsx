@@ -6,7 +6,7 @@ function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="nav-logo">Liroz</div>
+      <div className="nav-logo">Elev8</div>
 
       <div className="nav-wrapper">
         <div className="nav-container">
