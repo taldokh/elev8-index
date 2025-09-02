@@ -1,11 +1,17 @@
+import csv
+import glob
 import os
+import re
 from datetime import datetime
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 import config.config as cg
 from models.configuration_model import Configuration
+from models.firm_model import Firm
+from models.thirteen_f_holding_model import ThirteenFHolding
+
 
 def str_to_bool(s):
     if s:
@@ -115,3 +121,107 @@ def generate_quarter_ranges(start_date, end_date):
                 quarter_end_date = end_date
             quarter_ranges.append((quarter_start_date, quarter_end_date))
     return quarter_ranges
+
+def load_cusip_to_ticker_map(file_path: str) -> dict:
+    mapping = {}
+    with open(file_path, newline="") as f:
+        reader = csv.DictReader(f, delimiter="\t")
+        for row in reader:
+            mapping[row["cusip"].strip()] = row["ticker"].strip()
+    return mapping
+
+
+def parse_13f_directory(filings_dir: str, cusip_map: dict, session: Session):
+    for file_path in glob.glob(os.path.join(filings_dir, "*")):
+        if file_path.endswith(".xml"):
+            parse_13f_xml(file_path, cusip_map, session)
+        elif file_path.endswith(".tsv"):
+            parse_13f_tsv(file_path, cusip_map, session)
+        session.commit()
+
+def parse_13f_xml(file_path: str, cusip_map: dict, session: Session):
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+
+    # Extract firm info
+    cik = root.findtext(".//cik")
+    name = root.findtext(".//name")
+
+    firm = session.query(Firm).filter_by(cik=cik).first()
+    if not firm:
+        firm = Firm(cik=cik, name=name)
+        session.add(firm)
+        session.flush()
+
+    quarter = extract_quarter_from_filename(file_path)
+
+    for info in root.findall(".//infoTable"):
+        cusip = info.findtext("cusip")
+        ticker = cusip_map.get(cusip, None)
+
+        holding = ThirteenFHolding(
+            firm_id=firm.id,
+            quarter=quarter,
+            cusip=cusip,
+            ticker=ticker,
+            name_of_issuer=info.findtext("nameOfIssuer"),
+            value=float(info.findtext("value", "0")),
+            ssh_prnamt=float(info.findtext("sshPrnamt", "0")),
+            ssh_prnamt_type=info.findtext("sshPrnamtType"),
+            investment_discretion=info.findtext("investmentDiscretion"),
+            other_manager=info.findtext("otherManager"),
+            sole=int(info.findtext("votingAuthority/sole", "0")),
+            shared=int(info.findtext("votingAuthority/shared", "0")),
+            none=int(info.findtext("votingAuthority/none", "0")),
+        )
+        session.add(holding)
+
+import pandas as pd
+
+def parse_13f_tsv(file_path: str, cusip_map: dict, session: Session):
+    df = pd.read_csv(file_path, sep="\t")
+
+    cik = extract_cik_from_filename(file_path)
+    name = extract_name_from_filename(file_path)
+    quarter = extract_quarter_from_filename(file_path)
+
+    firm = session.query(Firm).filter_by(cik=cik).first()
+    if not firm:
+        firm = Firm(cik=cik, name=name)
+        session.add(firm)
+        session.flush()
+
+    for _, row in df.iterrows():
+        cusip = str(row["cusip"]).strip()
+        ticker = cusip_map.get(cusip, None)
+
+        holding = ThirteenFHolding(
+            firm_id=firm.id,
+            quarter=quarter,
+            cusip=cusip,
+            ticker=ticker,
+            name_of_issuer=row.get("nameOfIssuer", ""),
+            value=row.get("value", 0),
+            ssh_prnamt=row.get("sshPrnamt", 0),
+            ssh_prnamt_type=row.get("sshPrnamtType", ""),
+            investment_discretion=row.get("investmentDiscretion", ""),
+            other_manager=row.get("otherManager", None),
+            sole=row.get("sole", 0),
+            shared=row.get("shared", 0),
+            none=row.get("none", 0),
+        )
+        session.add(holding)
+
+def extract_quarter_from_filename(path):
+    match = re.search(r"(\d{4})Q([1-4])", path)
+    if match:
+        return f"{match.group(1)}Q{match.group(2)}"
+    return "UNKNOWN"
+
+def extract_cik_from_filename(path):
+    # Customize based on how CIK is in the filename
+    return "FAKECIK"
+
+def extract_name_from_filename(path):
+    # Customize based on actual filename format
+    return os.path.basename(path).split("_")[0]
