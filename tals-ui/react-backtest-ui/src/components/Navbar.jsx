@@ -32,11 +32,6 @@ function Navbar() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/portfolio" className="nav-link" onClick={() => setIsOpen(false)}>
-                Portfolio
-              </NavLink>
-            </li>
-            <li>
               <NavLink to="/contact" className="nav-link" onClick={() => setIsOpen(false)}>
                 Contact
               </NavLink>
